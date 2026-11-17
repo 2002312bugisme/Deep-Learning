@@ -14,15 +14,16 @@
 | Self-Attention | `attention/` | Q/K/V 怎么算、为什么它不知道顺序、位置编码怎么补 |
 | Transformer | `transformer/` | FFN 干什么、BN 为什么不如 LN、pre/post-norm 差在哪 |
 | Decoder / Seq2seq | `transformer/` | masked attention 为什么必须、cross-attention 的 Q 从哪来 |
+| 高效 Attention | `efficient_attention/` | 五条省算力的路，哪条真能加速、哪条只是"看起来省" |
 
-学习笔记：[`notes/`](notes/README.md)（含 89 张课件截图和逐条讲解）
+学习笔记：[`notes/`](notes/README.md)（含 134 张课件截图和逐条讲解）
 
 ## 快速开始
 
 ```bash
 python main.py               # 列出所有 demo
 python main.py cnn           # 跑某一个
-python main.py all           # 六个全跑
+python main.py all           # 七个全跑
 ```
 
 `python -m <主题>.demo` 也可以。环境只依赖 torch（CPU 版即可）：
@@ -45,8 +46,9 @@ DeepLearning/
 ├── lstm/                 cell.py, demo.py
 ├── attention/            model.py, demo.py
 ├── transformer/          norm.py, block.py, demo.py
+├── efficient_attention/  model.py, demo.py
 │
-└── notes/                README.md + 01~06 章 + assets/（课件图）
+└── notes/                README.md + 01~07 章 + assets/（课件图）
 ```
 
 每个包内部统一：**`model.py`（或 `cell.py`）放实现，`demo.py` 放演示**。
@@ -62,6 +64,7 @@ demo 之间不互相依赖，删掉任何一个不影响其它。
 | 04 | [Self-Attention](notes/04-self-attention.md) | 用 Q 找 K，softmax 之后对所有 V 加权求和 |
 | 05 | [Transformer](notes/05-transformer.md) | attention 是通信，FFN 是计算，FFN 占参数 2/3 |
 | 06 | [Decoder / Seq2seq](notes/06-decoder-seq2seq.md) | masked 遮未来、cross-attention 的 Q 来自 decoder |
+| 07 | [高效 Self-Attention](notes/07-efficient-attention.md) | 五条省算力的路，以及哪条真的能加速 |
 
 ## 几个值得记住的数字
 
@@ -77,6 +80,9 @@ demo 之间不互相依赖，删掉任何一个不影响其它。
 | self-attention 打乱顺序（无 PE） | `max\|Δ\| = 0`（真的不知道顺序） |
 | Transformer block 里 FFN 的参数占比 | **67%** |
 | BN 的 batch 依赖程度 | LN `0` vs BN `1.8479` |
+| 换乘法顺序 `(QKᵀ)V` → `Q(KᵀV)` | 相对误差 `4.4e-07`（数学等价），快 **24 倍** |
+| 稀疏化：置 0 了 87% 的格子 | 耗时反而从 2.87ms 涨到 **6.33ms**（mask≠加速） |
+| 随机权重下注意力矩阵保留 K=32 | 重构误差 **42%**（低秩是训练出来的，不是数学性质） |
 
 ## 约定
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 import importlib
 import sys
 
-DEMOS = ["cnn", "rnn", "lstm", "attention", "transformer"]
+DEMOS = ["cnn", "rnn", "lstm", "attention", "transformer", "efficient_attention"]
 
 
 def main() -> None:

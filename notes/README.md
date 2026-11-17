@@ -10,6 +10,7 @@
 | [04 · Self-Attention](04-self-attention.md) | Q/K/V、注意力矩阵、位置编码、多头、速度 | `attention/demo.py` |
 | [05 · Transformer](05-transformer.md) | FFN、BN vs LN、pre/post-norm、encoder-decoder 层连接 | `transformer/demo.py` |
 | [06 · Decoder 与 Seq2seq](06-decoder-seq2seq.md) | masked attention、AT/NAT、cross-attention、teacher forcing、beam search | `transformer/block.py` |
+| [07 · 高效 Self-Attention](07-efficient-attention.md) | 五条省算力的路：稀疏化 / 聚类 / 可学习 / 低秩 / 线性化 | `efficient_attention/demo.py` |
 
 ## 每章都有一节「Q&A」
 
@@ -18,7 +19,7 @@
 
 ## 图片
 
-`assets/` 下按章节存放课件截图（共 89 张），文件名按上传顺序编号，正文里按讲解顺序引用。
+`assets/` 下按章节存放课件截图（共 134 张），文件名按上传顺序编号，正文里按讲解顺序引用。
 
 ```
 assets/
@@ -27,13 +28,16 @@ assets/
 ├── lstm/          5 张
 ├── attention/    25 张
 ├── transformer/   8 张
-└── seq2seq/      34 张
+├── seq2seq/      34 张
+└── efficient/    45 张
 ```
+
+共 134 张，正文引用 96 处。
 
 ## 阅读顺序建议
 
 如果是第一次过这套内容，建议按 01 → 02 → 03 → 04 → 05 → 06 走。
-如果只想补某一块，04 和 06 是信息密度最高的两章（attention 的机制 + decoder 的生成策略）。
+如果只想补某一块，04、06、07 是信息密度最高的三章（attention 机制 / 生成策略 / 效率优化）。
 
 ## 关于数字
 
