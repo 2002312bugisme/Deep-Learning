@@ -11,6 +11,8 @@
 | [05 · Transformer](05-transformer.md) | FFN、BN vs LN、pre/post-norm、encoder-decoder 层连接 | `transformer/demo.py` |
 | [06 · Decoder 与 Seq2seq](06-decoder-seq2seq.md) | masked attention、AT/NAT、cross-attention、teacher forcing、beam search | `transformer/block.py` |
 | [07 · 高效 Self-Attention](07-efficient-attention.md) | 五条省算力的路：稀疏化 / 聚类 / 可学习 / 低秩 / 线性化 | `efficient_attention/demo.py` |
+| [08 · GAN](08-gan.md) | generator / discriminator 两步交替、非饱和损失、模式崩塌 | `gan/demo.py` |
+| [09 · GAN 理论](09-wgan.md) | divergence、min-max、JS 的死穴、Wasserstein、Lipschitz 约束 | `gan/divergence.py` |
 
 ## 每章都有一节「Q&A」
 
@@ -19,7 +21,7 @@
 
 ## 图片
 
-`assets/` 下按章节存放课件截图（共 134 张），文件名按上传顺序编号，正文里按讲解顺序引用。
+`assets/` 下按章节存放课件截图（共 175 张），文件名按上传顺序编号，正文里按讲解顺序引用。
 
 ```
 assets/
@@ -29,10 +31,12 @@ assets/
 ├── attention/    25 张
 ├── transformer/   8 张
 ├── seq2seq/      34 张
-└── efficient/    45 张
+├── efficient/    45 张
+├── gan/          17 张
+└── wgan/         24 张
 ```
 
-共 134 张，正文引用 96 处。
+共 175 张，正文引用 136 处。
 
 ## 阅读顺序建议
 

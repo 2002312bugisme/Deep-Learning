@@ -15,15 +15,16 @@
 | Transformer | `transformer/` | FFN 干什么、BN 为什么不如 LN、pre/post-norm 差在哪 |
 | Decoder / Seq2seq | `transformer/` | masked attention 为什么必须、cross-attention 的 Q 从哪来 |
 | 高效 Attention | `efficient_attention/` | 五条省算力的路，哪条真能加速、哪条只是"看起来省" |
+| GAN | `gan/` | 为什么需要分布、MSE 为什么会糊、两个网络怎么互相骗 |
 
-学习笔记：[`notes/`](notes/README.md)（含 134 张课件截图和逐条讲解）
+学习笔记：[`notes/`](notes/README.md)（含 175 张课件截图和逐条讲解）
 
 ## 快速开始
 
 ```bash
 python main.py               # 列出所有 demo
 python main.py cnn           # 跑某一个
-python main.py all           # 七个全跑
+python main.py all           # 八个全跑
 ```
 
 `python -m <主题>.demo` 也可以。环境只依赖 torch（CPU 版即可）：
@@ -47,8 +48,9 @@ DeepLearning/
 ├── attention/            model.py, demo.py
 ├── transformer/          norm.py, block.py, demo.py
 ├── efficient_attention/  model.py, demo.py
+├── gan/                  model.py, divergence.py, demo.py
 │
-└── notes/                README.md + 01~07 章 + assets/（课件图）
+└── notes/                README.md + 01~09 章 + assets/（课件图）
 ```
 
 每个包内部统一：**`model.py`（或 `cell.py`）放实现，`demo.py` 放演示**。
@@ -65,6 +67,8 @@ demo 之间不互相依赖，删掉任何一个不影响其它。
 | 05 | [Transformer](notes/05-transformer.md) | attention 是通信，FFN 是计算，FFN 占参数 2/3 |
 | 06 | [Decoder / Seq2seq](notes/06-decoder-seq2seq.md) | masked 遮未来、cross-attention 的 Q 来自 decoder |
 | 07 | [高效 Self-Attention](notes/07-efficient-attention.md) | 五条省算力的路，以及哪条真的能加速 |
+| 08 | [GAN](notes/08-gan.md) | 不定义对错，只训一个"像不像"的裁判 |
+| 09 | [GAN 理论](notes/09-wgan.md) | divergence 不会算 → 用 D 去估 → JS 在重叠为 0 时失效 → WGAN |
 
 ## 几个值得记住的数字
 
@@ -83,6 +87,11 @@ demo 之间不互相依赖，删掉任何一个不影响其它。
 | 换乘法顺序 `(QKᵀ)V` → `Q(KᵀV)` | 相对误差 `4.4e-07`（数学等价），快 **24 倍** |
 | 稀疏化：置 0 了 87% 的格子 | 耗时反而从 2.87ms 涨到 **6.33ms**（mask≠加速） |
 | 随机权重下注意力矩阵保留 K=32 | 重构误差 **42%**（低秩是训练出来的，不是数学性质） |
+| MSE 学双峰数据 | 输出 **0**（真实值只有 ±2，条件均值是个不存在的值） |
+| GAN 两步交替后 D 的参数变化 | 训练 G 时 D 变化 **0.00e+00**（真的冻住了） |
+| `max_D V(D)` vs `2·JS - 2log2` | **-0.9440 vs -0.9440**（完全相等） |
+| JS 在不重叠区间内 | θ 从 10 到 6，JS 只动 **0.004**，Wasserstein 从 10 掉到 6 |
+| WGAN 三种 Lipschitz 约束 | 无约束梯度 **531,864**；GP 后梯度 1.10、差值 **2.198 ≈ W1** |
 
 ## 约定
 
