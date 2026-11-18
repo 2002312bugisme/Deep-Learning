@@ -192,7 +192,7 @@ def sec_result() -> None:
 
 
 def sec_unstable() -> None:
-    banner("5. 诚实说：GAN 不好训")
+    banner("10. 诚实说：GAN 不好训")
     note("""
 上面那个圆环是挑过的结果。GAN 的常见故障：
 
@@ -208,7 +208,7 @@ def sec_unstable() -> None:
 
 
 def sec_objective() -> None:
-    banner("6. 到底 minimize 什么：G* = arg min Div，而 D 的 max 值就是 JS")
+    banner("5. 到底 minimize 什么：G* = arg min Div，而 D 的 max 值就是 JS")
     edges = torch.linspace(-6, 6, 241)
     p = DV.normal_pmf(0.0, 1.0, edges)                # P_data
     q = DV.normal_pmf(1.5, 1.0, edges)                # P_G
@@ -250,7 +250,7 @@ def sec_objective() -> None:
 
 
 def sec_js_plateau() -> None:
-    banner("7. JS 什么时候失效：不重叠时它是个常数")
+    banner("6. JS 什么时候失效：不重叠时它是个常数")
     edges = torch.linspace(-20, 20, 2001)
     dx = (edges[1] - edges[0]).item()
     p = DV.normal_pmf(0.0, 1.0, edges)
@@ -312,7 +312,7 @@ def _train_d(kind: str, real: torch.Tensor, fake: torch.Tensor, steps: int = 600
 
 
 def sec_wgan() -> None:
-    banner("8. WGAN：为什么要 Lipschitz 约束")
+    banner("7. WGAN：为什么要 Lipschitz 约束")
     real = torch.randn(256, 1) * 0.02                  # 真数据挤在 0
     fake = 2.0 + torch.randn(256, 1) * 0.02            # 生成的全在 2，完全不重叠
     print("    真实数据集中在 0，生成的全在 2 —— 两个分布完全不重叠")
@@ -354,6 +354,136 @@ WGAN 的目标换成了：
 
 
 
+def sec_sequence() -> None:
+    banner("8. 序列生成：argmax 把梯度掐断了，所以要用 RL")
+    V, d = 5, 8
+    torch.manual_seed(0)
+    emb = torch.randn(V, d)                       # 固定词向量表
+    dnet = nn.Sequential(nn.Linear(d, 32), nn.Tanh(), nn.Linear(32, 1))
+    for p in dnet.parameters():
+        p.requires_grad_(False)                   # D 冻结，只看 G 这边
+
+    theta = torch.randn(V, requires_grad=True)    # decoder 输出的 logits
+    probs = torch.softmax(theta, dim=0)
+    order = probs.argsort(descending=True)
+    first, second = int(order[0]), int(order[1])
+    hard = torch.zeros(V)
+    hard[first] = 1.0
+
+    score0 = dnet(hard @ emb).squeeze()
+    print(f"    当前最可能的 token = {first}，概率 {probs[first]:.3f}")
+    print(f"    D 对它打分：{score0.item():+.4f}")
+
+    # 把第二名的概率抬高一大截，但仍然是第二名
+    delta = torch.zeros(V)
+    delta[second] = 3.0
+    probs2 = torch.softmax(theta.detach() + delta, dim=0)
+    hard2 = torch.zeros(V)
+    hard2[first] = 1.0
+    score2 = dnet(hard2 @ emb).squeeze()
+    print()
+    print(f"    把第二名的 logit +3：概率 {probs[second]:.3f} -> {probs2[second]:.3f}"
+          f"（第一名没变）")
+    print(f"    但 argmax 还是 {first}，D 的打分变化 = {abs(score2.item() - score0.item()):.10f}")
+
+    # hard 路径的梯度
+    try:
+        score0.backward()
+        g_hard = theta.grad.abs().max().item()
+        print(f"\n    hard 路径（argmax → one-hot）：梯度 {g_hard:.2e}")
+    except RuntimeError:
+        print("\n    hard 路径（argmax → one-hot）：计算图直接断掉，梯度不存在")
+
+    # soft 路径：用概率加权（期望 embedding）
+    theta2 = theta.detach().clone().requires_grad_(True)
+    p2 = torch.softmax(theta2, dim=0)
+    s_soft = dnet(p2 @ emb).squeeze()
+    s_soft.backward()
+    print(f"    soft 路径（概率加权）：梯度 {theta2.grad.abs().max():.2e}   ← 有梯度了")
+
+    note("""
+这一段就是你说的那件事，现在有数字了。
+
+**问题**：decoder 输出 logits → softmax → **argmax** → 一个离散 token → D 打分。
+argmax 是一个**分段常数**函数：只要第一名没换人，输入怎么变，输出都一模一样。
+所以概率从 0.3 挪到 0.9、score 一点不动，`∂score/∂θ = 0` —— **没有任何可学的信号**。
+
+而且这个"断"不是实现问题，是数学问题：argmax 的雅可比处处为 0（除了测度零的边界点）。
+
+**为什么 soft 路径不能直接用**：用概率加权得到的是「期望 embedding」，
+它不是任何一个真实 token —— 拿它去骗 D 是可以传梯度，但生成出来的东西不对。
+（straight-through / Gumbel-softmax 是常用的折中：前向用 hard、反向用 soft 的梯度。）
+
+**RL 的解法**：绕开 argmax，直接用 **log 概率** 的梯度。
+
+    loss = - reward × log p(token)
+    reward = D(生成的序列)
+
+采样代替 argmax（采到哪个就用哪个 token），`log p` 对 θ 可导，reward 只当常数。
+这就是 REINFORCE / policy gradient。代价是**方差大**（一次只采一个样本），
+所以要 baseline、要多次采样 —— 这也解释了为什么「RL 难训 + GAN 难训」叠在一起会炸。
+""")
+
+    # REINFORCE：真跑几步，看概率往高分 token 集中
+    theta3 = torch.randn(V, requires_grad=True)
+    opt = torch.optim.SGD([theta3], lr=0.5)
+    target = int(dnet(emb).squeeze().argmax())     # D 最喜欢哪个 token
+    for _ in range(200):
+        p3 = torch.softmax(theta3, dim=0)
+        idx = torch.multinomial(p3, 1)
+        reward = dnet(emb[idx]).squeeze().detach()
+        loss = -(reward * torch.log_softmax(theta3, dim=0)[idx])
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+
+    p_final = torch.softmax(theta3.detach(), dim=0)
+    print(f"    REINFORCE 200 步后：D 最喜欢的 token 是 {target}，"
+          f"它的概率从 {1.0 / V:.3f} 涨到 {p_final[target]:.3f}")
+    print(f"    分数：初始 {dnet(emb[torch.randint(0, V, (1,))]).mean().item():+.3f}"
+          f"  ->  现在 {dnet(emb[target]).item():+.3f}")
+
+
+def sec_eval() -> None:
+    banner("9. 评估：质量看单张、多样性看覆盖")
+    torch.manual_seed(0)
+    real = M.sample_ring(400)
+
+    good = M.sample_ring(400)                                     # 覆盖整个环
+    collapsed = M.sample_ring(400) * 0 + torch.tensor([1.0, 0.0])  # 全挤在一个点
+    collapsed = collapsed + torch.randn(400, 2) * 0.02
+
+    def coverage(x, nbins=16):
+        ang = torch.atan2(x[:, 1], x[:, 0])
+        idx = ((ang + 3.14159) / (2 * 3.14159) * nbins).long().clamp(0, nbins - 1)
+        hit = torch.bincount(idx, minlength=nbins) > 0
+        return hit.float().mean().item()
+
+    print(f"    {'生成结果':<14}{'覆盖扇区':>10}{'平均半径':>10}{'半径标准差':>12}")
+    print("    " + "-" * 50)
+    for name, x in (("正常", good), ("模式崩塌", collapsed)):
+        r = x.norm(dim=1)
+        print(f"    {name:<14}{coverage(x):>9.0%}{r.mean():>11.3f}{r.std():>12.3f}")
+
+    note("""
+两个指标测的是**不同的东西**：
+
+  · **质量（单张像不像）**：拿一个现成的分类器（Inception/VGG）看它的输出分布，
+    集中 = 清晰、像某类 → IS 里的那部分
+  · **多样性（覆盖广不广）**：把所有生成样本的预测分布**平均**，越均匀越多样
+    → 这里用「覆盖了几个角度扇区」代替
+
+坑在于：**模式崩塌时，质量指标反而可能更高**。上面第二行，所有点挤在同一个位置，
+每一张都"很标准"，分类器非常确信 —— 但它只会画这一种。
+
+所以：
+  · **IS 只看单张的置信度**，不看覆盖 → 崩塌了也高（这是 IS 最大的缺陷）
+  · **FID 比较两组样本的整体分布**，能捕捉崩塌 → 更常用
+  · 但 FID 也有坑：它假设特征服从高斯；样本量少时估计有偏；而且**记忆 GAN**
+    （直接记住训练集）能刷出极低的 FID —— 指标低不等于生成得好。
+""")
+
+
 def main() -> None:
     torch.manual_seed(0)
     sec_why()
@@ -363,6 +493,8 @@ def main() -> None:
     sec_objective()
     sec_js_plateau()
     sec_wgan()
+    sec_sequence()
+    sec_eval()
     sec_unstable()
 
 

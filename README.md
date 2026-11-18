@@ -17,7 +17,7 @@
 | 高效 Attention | `efficient_attention/` | 五条省算力的路，哪条真能加速、哪条只是"看起来省" |
 | GAN | `gan/` | 为什么需要分布、MSE 为什么会糊、两个网络怎么互相骗 |
 
-学习笔记：[`notes/`](notes/README.md)（含 175 张课件截图和逐条讲解）
+学习笔记：[`notes/`](notes/README.md)（含 203 张课件截图和逐条讲解）
 
 ## 快速开始
 
@@ -50,7 +50,7 @@ DeepLearning/
 ├── efficient_attention/  model.py, demo.py
 ├── gan/                  model.py, divergence.py, demo.py
 │
-└── notes/                README.md + 01~09 章 + assets/（课件图）
+└── notes/                README.md + 01~10 章 + assets/（课件图）
 ```
 
 每个包内部统一：**`model.py`（或 `cell.py`）放实现，`demo.py` 放演示**。
@@ -69,6 +69,7 @@ demo 之间不互相依赖，删掉任何一个不影响其它。
 | 07 | [高效 Self-Attention](notes/07-efficient-attention.md) | 五条省算力的路，以及哪条真的能加速 |
 | 08 | [GAN](notes/08-gan.md) | 不定义对错，只训一个"像不像"的裁判 |
 | 09 | [GAN 理论](notes/09-wgan.md) | divergence 不会算 → 用 D 去估 → JS 在重叠为 0 时失效 → WGAN |
+| 10 | [序列生成 · 评估 · cGAN](notes/10-gan-seq-eval-conditional.md) | argmax 断梯度 → 用 RL；IS/FID；条件生成改的是 D |
 
 ## 几个值得记住的数字
 
@@ -92,6 +93,9 @@ demo 之间不互相依赖，删掉任何一个不影响其它。
 | `max_D V(D)` vs `2·JS - 2log2` | **-0.9440 vs -0.9440**（完全相等） |
 | JS 在不重叠区间内 | θ 从 10 到 6，JS 只动 **0.004**，Wasserstein 从 10 掉到 6 |
 | WGAN 三种 Lipschitz 约束 | 无约束梯度 **531,864**；GP 后梯度 1.10、差值 **2.198 ≈ W1** |
+| argmax 断梯度 | 第二名概率 0.316→**0.903**，D 打分变化 **0.0000000000** |
+| REINFORCE 200 步 | 目标 token 概率 0.200→**0.954** |
+| 模式崩塌的覆盖率 | 正常 **100%** vs 崩塌 **12%** |
 
 ## 约定
 
