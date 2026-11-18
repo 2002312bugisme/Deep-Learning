@@ -192,7 +192,7 @@ def sec_result() -> None:
 
 
 def sec_unstable() -> None:
-    banner("10. 诚实说：GAN 不好训")
+    banner("11. 诚实说：GAN 不好训")
     note("""
 上面那个圆环是挑过的结果。GAN 的常见故障：
 
@@ -484,6 +484,105 @@ def sec_eval() -> None:
 """)
 
 
+def _train_cycle(lam: float, steps: int = 1500):
+    """两个 1D 线段之间的无配对映射。lam=0 表示只用对抗损失。"""
+    torch.manual_seed(1)
+    n = 256
+    t = torch.rand(n, 1) * 2 - 1
+    x_dom = torch.cat([t, torch.zeros_like(t)], dim=1)        # X：x 轴上的线段
+    y_dom = torch.cat([torch.zeros_like(t), t], dim=1)        # Y：y 轴上的线段
+
+    def net():
+        return nn.Sequential(nn.Linear(2, 64), nn.ReLU(),
+                             nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 2))
+
+    def disc():
+        return nn.Sequential(nn.Linear(2, 64), nn.LeakyReLU(0.2),
+                             nn.Linear(64, 64), nn.LeakyReLU(0.2), nn.Linear(64, 1))
+
+    g_xy, g_yx, d_x, d_y = net(), net(), disc(), disc()
+    bce = nn.BCEWithLogitsLoss()
+    o_g = torch.optim.Adam(list(g_xy.parameters()) + list(g_yx.parameters()),
+                           lr=2e-3, betas=(0.5, 0.999))
+    o_d = torch.optim.Adam(list(d_x.parameters()) + list(d_y.parameters()),
+                           lr=2e-3, betas=(0.5, 0.999))
+
+    for _ in range(steps):
+        fx, fy = g_yx(y_dom).detach(), g_xy(x_dom).detach()
+        loss_d = (bce(d_y(y_dom), torch.ones(n, 1)) + bce(d_y(fy), torch.zeros(n, 1))
+                  + bce(d_x(x_dom), torch.ones(n, 1)) + bce(d_x(fx), torch.zeros(n, 1)))
+        o_d.zero_grad()
+        loss_d.backward()
+        o_d.step()
+
+        fake_y, fake_x = g_xy(x_dom), g_yx(y_dom)
+        adv = bce(d_y(fake_y), torch.ones(n, 1)) + bce(d_x(fake_x), torch.ones(n, 1))
+        cyc = ((g_yx(fake_y) - x_dom) ** 2).mean() + ((g_xy(fake_x) - y_dom) ** 2).mean()
+        loss_g = adv + lam * cyc
+        o_g.zero_grad()
+        loss_g.backward()
+        o_g.step()
+
+    with torch.no_grad():
+        out = g_xy(x_dom)
+        back = g_yx(out)
+        cyc_err = (back - x_dom).norm(dim=1).mean().item()
+        corr = torch.corrcoef(torch.stack([t.squeeze(1), out[:, 1]]))[0, 1].item()
+        spread = out[:, 1].std().item()
+    return cyc_err, corr, spread
+
+
+def sec_cycle() -> None:
+    banner("10. Cycle GAN：没有配对数据怎么学映射")
+    note("""
+任务：把 X 域（x 轴上一段线）映射到 Y 域（y 轴上一段线），**没有任何配对样本**。
+两个域的点各自独立采样，只知道"这群属于 X、那群属于 Y"。
+
+只有对抗损失时会发生什么？G 只要把输出丢到 Y 域上就能骗过 D，
+**输入是什么完全无所谓** —— 这正是课件里那个红色叉号「ignore input」。
+""")
+
+    print(f"    {'训练方式':<22}{'往返误差':>12}{'输入-输出相关性':>18}{'输出分散度':>12}")
+    print("    " + "-" * 66)
+    for lam, label in ((0.0, "只有对抗损失"), (10.0, "对抗 + cycle (λ=10)")):
+        err, corr, spread = _train_cycle(lam)
+        print(f"    {label:<20}{err:>12.3f}{corr:>16.3f}{spread:>12.3f}")
+
+    note("""
+三个指标，读法：
+
+  · **往返误差** `‖G_YX(G_XY(x)) - x‖`：转过去再转回来，还能不能回到原位
+  · **输入-输出相关性**：输入 x 的位置和输出 y 的位置是否还对应
+  · **输出分散度**：输出在 Y 域上铺得够不够开（均匀分布的理论值是 0.577）
+
+**先说实话：结果和我预期的不一样。** 只有对抗损失时，相关性已经到 -0.997、
+分散度 0.567 —— G 自己就学到了近似单调的映射，**没有**出现课件里那种
+"ignore input" 的崩塌。加 cycle 只是把往返误差从 0.057 压到 0.033。
+
+为什么？因为 X 和 Y 都是一维线段，"均匀铺开 + 保持顺序"恰好是**最省力**的解。
+梯度下降的归纳偏置在这个干净空间里自然选到了对的。
+
+那真实任务为什么必须加 cycle？因为真实数据有**内容歧义**：
+一匹马可以对应无数张斑马，而 D 只检查"输出的边际分布像不像 Y"，
+管不了"这匹马变成了哪匹斑马"。这时对抗损失对 `P(y|x)` 完全没有约束，
+G 完全可以选一个语义乱掉、但边际分布正确的映射。
+
+这个 2D toy 恰好没有这种歧义，所以它**验证不了**课件里的惨状，
+只能验证 cycle 项确实在压可逆性。这是一个诚实的负面结果：
+
+    **玩具实验证不了的东西，别假装它证了。**
+
+Cycle GAN 的 loss：
+
+    L = L_GAN(G, D) + λ · ‖G_YX(G_XY(x)) - x‖
+
+λ 一般取 10（原论文）。太大就只顾重建、不管像不像；太小就退化成无 cycle。
+
+还有一点必须记住：**cycle 只保证可逆，不保证映射"对"**。
+多个可逆映射都能通过这个损失，它不会告诉你哪一个是语义正确的那一个。
+""")
+
+
 def main() -> None:
     torch.manual_seed(0)
     sec_why()
@@ -495,6 +594,7 @@ def main() -> None:
     sec_wgan()
     sec_sequence()
     sec_eval()
+    sec_cycle()
     sec_unstable()
 
 

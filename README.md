@@ -17,7 +17,7 @@
 | 高效 Attention | `efficient_attention/` | 五条省算力的路，哪条真能加速、哪条只是"看起来省" |
 | GAN | `gan/` | 为什么需要分布、MSE 为什么会糊、两个网络怎么互相骗 |
 
-学习笔记：[`notes/`](notes/README.md)（含 203 张课件截图和逐条讲解）
+学习笔记：[`notes/`](notes/README.md)（含 217 张课件截图和逐条讲解）
 
 ## 快速开始
 
@@ -50,7 +50,7 @@ DeepLearning/
 ├── efficient_attention/  model.py, demo.py
 ├── gan/                  model.py, divergence.py, demo.py
 │
-└── notes/                README.md + 01~10 章 + assets/（课件图）
+└── notes/                README.md + 01~11 章 + assets/（课件图）
 ```
 
 每个包内部统一：**`model.py`（或 `cell.py`）放实现，`demo.py` 放演示**。
@@ -70,6 +70,7 @@ demo 之间不互相依赖，删掉任何一个不影响其它。
 | 08 | [GAN](notes/08-gan.md) | 不定义对错，只训一个"像不像"的裁判 |
 | 09 | [GAN 理论](notes/09-wgan.md) | divergence 不会算 → 用 D 去估 → JS 在重叠为 0 时失效 → WGAN |
 | 10 | [序列生成 · 评估 · cGAN](notes/10-gan-seq-eval-conditional.md) | argmax 断梯度 → 用 RL；IS/FID；条件生成改的是 D |
+| 11 | [无配对数据](notes/11-cyclegan.md) | Cycle GAN：对抗管边际，cycle 管可逆 |
 
 ## 几个值得记住的数字
 

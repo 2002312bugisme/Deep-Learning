@@ -14,6 +14,7 @@
 | [08 · GAN](08-gan.md) | generator / discriminator 两步交替、非饱和损失、模式崩塌 | `gan/demo.py` |
 | [09 · GAN 理论](09-wgan.md) | divergence、min-max、JS 的死穴、Wasserstein、Lipschitz 约束 | `gan/divergence.py` |
 | [10 · 序列生成 · 评估 · Conditional GAN](10-gan-seq-eval-conditional.md) | argmax 断梯度与 RL、IS/FID、模式崩塌、pix2pix | `gan/demo.py` 第 8~9 节 |
+| [11 · 无配对数据](11-cyclegan.md) | Cycle GAN、cycle consistency、StarGAN、文本风格迁移 | `gan/demo.py` 第 10 节 |
 
 ## 每章都有一节「Q&A」
 
@@ -22,7 +23,7 @@
 
 ## 图片
 
-`assets/` 下按章节存放课件截图（共 203 张），文件名按上传顺序编号，正文里按讲解顺序引用。
+`assets/` 下按章节存放课件截图（共 217 张），文件名按上传顺序编号，正文里按讲解顺序引用。
 
 ```
 assets/
@@ -35,10 +36,11 @@ assets/
 ├── efficient/    45 张
 ├── gan/          17 张
 ├── wgan/         24 张
-└── gan2/         28 张
+├── gan2/         28 张
+└── cycle/        14 张
 ```
 
-共 203 张，正文引用 164 处。
+共 217 张，正文引用 178 处。
 
 ## 阅读顺序建议
 
